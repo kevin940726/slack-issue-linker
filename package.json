@@ -11,6 +11,9 @@
     "slack",
     "bot"
   ],
+	"engines": {
+    "node": "6.0.0"
+  },
   "author": "Kai Hao",
   "license": "MIT",
   "dependencies": {
