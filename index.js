@@ -26,19 +26,60 @@ controller.hears('^issue set-url ([^\\s]+) ?([^\\s]+)?$', ['message_received', '
 		url = message.match[2];
 	}
 
+	console.log(repo, url);
+
 	ref.update({
 		[`${channel}/${repo}`]: url.slice(1, url.length - 1),
 	});
 
-	bot.reply(message, `set ${repo} to ${url}.`);
+	bot.api.chat.postMessage({
+		text: '',
+		username: `Issue Setting`,
+		icon_url: 'http://nas25lol.myqnapcloud.com:10088/assets/gitlab_logo-cdf021b35c4e6bb149e26460f26fae81e80552bc879179dd80e9e9266b14e894.png', // eslint-disable-line max-len
+		channel,
+		attachments: [{
+			text: `Mapped ${repo} to ${url}.`,
+		}],
+	});
 });
 
 controller.hears('([^\\s]+)?#(\\d+)', ['message_received', 'direct_mention', 'ambient'], (bot, message) => {
 	const channel = message.channel;
-	const repo = message.match[1] || 'default';
-	const issue = message.match[2];
+	const regex = /([^\s]+)?#(\d+)/gi;
+	const text = message.text;
+	let match;
+	const matches = [];
 
-	ref.child(channel).child(repo).once('value', snapshot => {
-		bot.reply(message, `${snapshot.val()}/issues/${issue}`);
+	while (match = (regex.exec(text))) {
+		matches.push({
+			repo: match[1] || 'default',
+			issue: match[2],
+		});
+	}
+
+	ref.child(channel).once('value', snapshot => {
+		const urls = snapshot.val();
+
+		const attachments = matches
+			.map(m => ({
+				repo: m.repo,
+				issue: m.issue,
+				url: urls[m.repo],
+			}))
+			.filter(m => m.url)
+			.map(({ repo, url, issue }) => ({
+				text: `<${url}/issues/${issue}|${repo === 'default' ? '' : repo}#${issue}>`,
+				parse: 'none',
+			}));
+
+		if (urls) {
+			bot.api.chat.postMessage({
+				text: '',
+				username: `Issue Link${matches.length > 1 ? 's' : ''}`,
+				icon_url: 'http://nas25lol.myqnapcloud.com:10088/assets/gitlab_logo-cdf021b35c4e6bb149e26460f26fae81e80552bc879179dd80e9e9266b14e894.png', // eslint-disable-line max-len
+				channel,
+				attachments,
+			});
+		}
 	});
 });
