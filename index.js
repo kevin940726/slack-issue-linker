@@ -22,13 +22,11 @@ firebase.initializeApp({
 const db = firebase.database();
 const ref = db.ref('link-map');
 
-const controller = slackbot({
-	debug: false,
-});
+const controller = slackbot({ debug: false });
 
 controller.spawn({ token: process.env.TOKEN }).startRTM();
 
-controller.hears('^issue (?:ls|list)', ['direct_mention', 'ambient'], (bot, message) => {
+controller.hears('^@?issue (?:ls|list)$', ['direct_mention', 'ambient'], (bot, message) => {
 	const channel = message.channel;
 
 	ref.child(channel).once('value', snapshot => {
@@ -50,7 +48,7 @@ controller.hears('^issue (?:ls|list)', ['direct_mention', 'ambient'], (bot, mess
 	});
 });
 
-controller.hears('^issue set(?:-url)? ([^\\s]+) ?([^\\s]+)?$', ['message_received', 'ambient'], (bot, message) => {
+controller.hears('^@?issue set(?:-url)? ([^\\s]+) ?([^\\s]+)?$', ['message_received', 'ambient'], (bot, message) => {
 	const channel = message.channel;
 	let repo = 'default';
 	let url = message.match[1];
@@ -97,6 +95,7 @@ controller.hears('(?:([^\\s\\/]+)\\/)?([^\\s\\/]+)?#(\\d+)', ['direct_mention', 
 		const urls = snapshot.val();
 
 		const attachments = matches
+			.filter((m, i, a) => a.indexOf(m) === i)
 			.map(m => ({
 				group: m.group,
 				repo: m.repo,
