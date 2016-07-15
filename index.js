@@ -50,10 +50,12 @@ controller.hears('^(issue )?set(?:-url)? ([^\\s]+) ?([^\\s]+)?$', ['direct_menti
 			url = message.match[3];
 		}
 
+		url = url.charAt(0) === '<' ? url.slice(1, url.length - 1) : `${BASE_URL}/${url}`;
+
 		console.log(repo, url);
 
 		ref.update({
-			[`${channel}/${repo}`]: url.charAt(0) === '<' ? url.slice(1, url.length - 1) : `${BASE_URL}/${url}`,
+			[`${channel}/${repo}`]: url,
 		});
 
 		bot.api.chat.postMessage({
