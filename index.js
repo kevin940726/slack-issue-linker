@@ -14,54 +14,59 @@ const controller = slackbot({ debug: false });
 
 controller.spawn({ token: process.env.TOKEN }).startRTM();
 
-controller.hears('^@?issue (?:ls|list)$', ['direct_mention', 'ambient'], (bot, message) => {
+controller.hears('^(issue )?(?:ls|list)$', ['direct_mention', 'ambient'], (bot, message) => {
 	const channel = message.channel;
 
-	ref.child(channel).once('value', snapshot => {
-		const mapping = snapshot.val();
+	if (message.match[1] || message.event === 'direct_mention') {
+		ref.child(channel).once('value', snapshot => {
+			const mapping = snapshot.val();
 
-		const attachments = Object.keys(mapping)
-			.map(repo => ({
-				text: `*${repo}* :point_right: ${mapping[repo]}`,
-				mrkdwn_in: ['text'],
-			}));
+			const attachments = Object.keys(mapping)
+				.map(repo => ({
+					text: `*${repo}* :point_right: ${mapping[repo]}`,
+					mrkdwn_in: ['text'],
+				}));
+
+			bot.api.chat.postMessage({
+				text: '',
+				username: `Issue List`,
+				icon_url: process.env.ICON_URL,
+				channel,
+				attachments,
+			});
+		});
+	}
+});
+
+controller.hears('^(issue )?set(?:-url)? ([^\\s]+) ?([^\\s]+)?$', ['direct_mention', 'ambient'], (bot, message) => {
+	const channel = message.channel;
+
+	if (message.match[1] || message.event === 'direct_mention') {
+		let repo = 'default';
+		let url = message.match[2];
+
+		if (message.match[3]) {
+			repo = message.match[2];
+			url = message.match[3];
+		}
+
+		console.log(repo, url);
+
+		ref.update({
+			[`${channel}/${repo}`]: url.slice(1, url.length - 1),
+		});
 
 		bot.api.chat.postMessage({
 			text: '',
-			username: `Issue List`,
+			username: `Issue Setting`,
 			icon_url: process.env.ICON_URL,
 			channel,
-			attachments,
+			attachments: [{
+				text: `:ok_hand: Mapped *${repo}* to ${url}.`,
+				mrkdwn_in: ['text'],
+			}],
 		});
-	});
-});
-
-controller.hears('^@?issue set(?:-url)? ([^\\s]+) ?([^\\s]+)?$', ['message_received', 'ambient'], (bot, message) => {
-	const channel = message.channel;
-	let repo = 'default';
-	let url = message.match[1];
-
-	if (message.match[2]) {
-		repo = message.match[1];
-		url = message.match[2];
 	}
-
-	console.log(repo, url);
-
-	ref.update({
-		[`${channel}/${repo}`]: url.slice(1, url.length - 1),
-	});
-
-	bot.api.chat.postMessage({
-		text: '',
-		username: `Issue Setting`,
-		icon_url: process.env.ICON_URL,
-		channel,
-		attachments: [{
-			text: `:ok_hand: Mapped *${repo}* to ${url}.`,
-			mrkdwn_in: ['text'],
-		}],
-	});
 });
 
 controller.hears('(?:([^\\s\\/]+)\\/)?([^\\s\\/]+)?#(\\d+)', ['direct_mention', 'ambient'], (bot, message) => {
