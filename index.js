@@ -1,12 +1,22 @@
 const { slackbot } = require('botkit');
 const firebase = require('firebase');
-const token = require('./slackToken.json').token;
 
-const BASE_URL = 'http://nas25lol.myqnapcloud.com:10088';
+const BASE_URL = process.env.BASE_URL || 'https://github.com/';
 
 firebase.initializeApp({
-	serviceAccount: './serviceAccountCredentials.json',
-	databaseURL: 'https://resplendent-inferno-1298.firebaseio.com/',
+	serviceAccount: {
+		type: process.env.TYPE,
+		project_id: process.env.PROJECT_ID,
+		private_key_id: process.env.PRIVATE_KEY_ID,
+		private_key: process.env.PRIVATE_KEY,
+		client_email: process.env.CLIENT_EMAIL,
+		client_id: process.env.CLIENT_ID,
+		auth_uri: process.env.AUTH_URI,
+		token_uri: process.env.TOKEN_URI,
+		auth_provider_x509_cert_url: process.env.AUTH_PROVIDER_X509_CERT_URL,
+		client_x509_cert_url: process.env.CLIENT_X509_CERT_URL,
+	},
+	databaseURL: process.env.DATABASE_URL,
 });
 
 const db = firebase.database();
@@ -16,7 +26,7 @@ const controller = slackbot({
 	debug: false,
 });
 
-controller.spawn({ token }).startRTM();
+controller.spawn({ token: process.env.TOKEN }).startRTM();
 
 controller.hears('^issue (?:ls|list)', ['direct_mention', 'ambient'], (bot, message) => {
 	const channel = message.channel;
@@ -33,7 +43,7 @@ controller.hears('^issue (?:ls|list)', ['direct_mention', 'ambient'], (bot, mess
 		bot.api.chat.postMessage({
 			text: '',
 			username: `Issue List`,
-			icon_url: 'http://nas25lol.myqnapcloud.com:10088/assets/gitlab_logo-cdf021b35c4e6bb149e26460f26fae81e80552bc879179dd80e9e9266b14e894.png', // eslint-disable-line max-len
+			icon_url: process.env.ICON_URL,
 			channel,
 			attachments,
 		});
@@ -59,7 +69,7 @@ controller.hears('^issue set(?:-url)? ([^\\s]+) ?([^\\s]+)?$', ['message_receive
 	bot.api.chat.postMessage({
 		text: '',
 		username: `Issue Setting`,
-		icon_url: 'http://nas25lol.myqnapcloud.com:10088/assets/gitlab_logo-cdf021b35c4e6bb149e26460f26fae81e80552bc879179dd80e9e9266b14e894.png', // eslint-disable-line max-len
+		icon_url: process.env.ICON_URL,
 		channel,
 		attachments: [{
 			text: `:ok_hand: Mapped *${repo}* to ${url}.`,
@@ -109,7 +119,7 @@ controller.hears('(?:([^\\s\\/]+)\\/)?([^\\s\\/]+)?#(\\d+)', ['direct_mention', 
 			bot.api.chat.postMessage({
 				text: '',
 				username: `Issue Link${matches.length > 1 ? 's' : ''}`,
-				icon_url: 'http://nas25lol.myqnapcloud.com:10088/assets/gitlab_logo-cdf021b35c4e6bb149e26460f26fae81e80552bc879179dd80e9e9266b14e894.png', // eslint-disable-line max-len
+				icon_url: process.env.ICON_URL,
 				channel,
 				attachments,
 			});
