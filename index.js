@@ -10,6 +10,8 @@ firebase.initializeApp({
 const db = firebase.database();
 const ref = db.ref('link-map');
 
+const ts = {};
+
 const controller = slackbot({ debug: false });
 
 controller.spawn({ token: process.env.TOKEN }).startRTM();
@@ -89,7 +91,17 @@ controller.hears('(?:([^\\s\\/]+)\\/)?([^\\s\\/]+)?#(\\d+)', ['direct_mention', 
 	ref.child(channel).once('value', snapshot => {
 		const urls = snapshot.val();
 
+		ts[channel] = ts[channel] || {};
+
 		const attachments = matches
+			.filter(m => {
+				let d = ts[channel][`${m.group}/${m.repo}/${m.issue}`];
+				if (d && d - Date.now() < 60000) { // abandom if exists and less than 10 minutes
+					return false;
+				}
+				d = Date.now();
+				return true;
+			})
 			.filter((m, i, a) => a.indexOf(m) === i)
 			.map(m => ({
 				group: m.group,
