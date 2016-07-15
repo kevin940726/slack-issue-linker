@@ -2,6 +2,8 @@ const { slackbot } = require('botkit');
 const firebase = require('firebase');
 const token = require('./slackToken.json').token;
 
+const BASE_URL = 'http://nas25lol.myqnapcloud.com:10088';
+
 firebase.initializeApp({
 	serviceAccount: './serviceAccountCredentials.json',
 	databaseURL: 'https://resplendent-inferno-1298.firebaseio.com/',
@@ -38,22 +40,24 @@ controller.hears('^issue set-url ([^\\s]+) ?([^\\s]+)?$', ['message_received', '
 		icon_url: 'http://nas25lol.myqnapcloud.com:10088/assets/gitlab_logo-cdf021b35c4e6bb149e26460f26fae81e80552bc879179dd80e9e9266b14e894.png', // eslint-disable-line max-len
 		channel,
 		attachments: [{
-			text: `Mapped ${repo} to ${url}.`,
+			text: `:ok_hand: Mapped *${repo}* to ${url}.`,
+			mrkdwn_in: ['text'],
 		}],
 	});
 });
 
-controller.hears('([^\\s]+)?#(\\d+)', ['message_received', 'direct_mention', 'ambient'], (bot, message) => {
+controller.hears('(?:([^\\s\\/]+)\\/)?([^\\s\\/]+)?#(\\d+)', ['message_received', 'ambient'], (bot, message) => {
 	const channel = message.channel;
-	const regex = /([^\s]+)?#(\d+)/gi;
+	const regex = /(?:([^\s\/]+)\/)?([^\s\/]+)?#(\d+)/gi;
 	const text = message.text;
 	let match;
 	const matches = [];
 
 	while (match = (regex.exec(text))) {
 		matches.push({
-			repo: match[1] || 'default',
-			issue: match[2],
+			group: match[1],
+			repo: match[2] || 'default',
+			issue: match[3],
 		});
 	}
 
@@ -62,15 +66,22 @@ controller.hears('([^\\s]+)?#(\\d+)', ['message_received', 'direct_mention', 'am
 
 		const attachments = matches
 			.map(m => ({
+				group: m.group,
 				repo: m.repo,
 				issue: m.issue,
 				url: urls[m.repo],
 			}))
-			.filter(m => m.url)
-			.map(({ repo, url, issue }) => ({
-				text: `<${url}/issues/${issue}|${repo === 'default' ? '' : repo}#${issue}>`,
-				parse: 'none',
-			}));
+			.filter(m => m.group || m.url)
+			.map(({ group, repo, url, issue }) => {
+				const base = `${group ? `${BASE_URL}/${group}/${repo}` : url}`;
+				const labelRepo = group ? `${group}/${repo}` : repo;
+				const label = `${repo === 'default' ? '' : labelRepo}#${issue}`;
+
+				return {
+					text: `:point_right: <${base}/issues/${issue}|${label}>`,
+					parse: 'none',
+				};
+			});
 
 		if (urls) {
 			bot.api.chat.postMessage({
