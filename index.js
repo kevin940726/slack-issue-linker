@@ -18,7 +18,29 @@ const controller = slackbot({
 
 controller.spawn({ token }).startRTM();
 
-controller.hears('^issue set-url ([^\\s]+) ?([^\\s]+)?$', ['message_received', 'ambient'], (bot, message) => {
+controller.hears('^issue (?:ls|list)', ['direct_mention', 'ambient'], (bot, message) => {
+	const channel = message.channel;
+
+	ref.child(channel).once('value', snapshot => {
+		const mapping = snapshot.val();
+
+		const attachments = Object.keys(mapping)
+			.map(repo => ({
+				text: `*${repo}* :point_right: ${mapping[repo]}`,
+				mrkdwn_in: ['text'],
+			}));
+
+		bot.api.chat.postMessage({
+			text: '',
+			username: `Issue List`,
+			icon_url: 'http://nas25lol.myqnapcloud.com:10088/assets/gitlab_logo-cdf021b35c4e6bb149e26460f26fae81e80552bc879179dd80e9e9266b14e894.png', // eslint-disable-line max-len
+			channel,
+			attachments,
+		});
+	});
+});
+
+controller.hears('^issue set(?:-url)? ([^\\s]+) ?([^\\s]+)?$', ['message_received', 'ambient'], (bot, message) => {
 	const channel = message.channel;
 	let repo = 'default';
 	let url = message.match[1];
@@ -46,7 +68,7 @@ controller.hears('^issue set-url ([^\\s]+) ?([^\\s]+)?$', ['message_received', '
 	});
 });
 
-controller.hears('(?:([^\\s\\/]+)\\/)?([^\\s\\/]+)?#(\\d+)', ['message_received', 'ambient'], (bot, message) => {
+controller.hears('(?:([^\\s\\/]+)\\/)?([^\\s\\/]+)?#(\\d+)', ['direct_mention', 'ambient'], (bot, message) => {
 	const channel = message.channel;
 	const regex = /(?:([^\s\/]+)\/)?([^\s\/]+)?#(\d+)/gi;
 	const text = message.text;
