@@ -1,6 +1,8 @@
 # slack-issue-linker
 :point_right: Give me the link of an issue!
 
+> THIS PROJECT IS **DEPRECATED**, PLEASE FORWARD TO [node-slack-issue-linker](https://github.com/kevin940726/node-slack-issue-linker).
+
 ## Usage
 1. Invite your bot to your channel.
 
